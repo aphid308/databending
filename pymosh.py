@@ -11,8 +11,10 @@ import random
 baseimage = sys.argv[1]
 glitchamount = int(sys.argv[2]) 
 offset = int(sys.argv[3])
+
 try:
     frames = int(sys.argv[4])
+
 except IndexError:
     frames = 16
 
@@ -27,11 +29,8 @@ def convertbmp(infile, outfile):
     image = Image.open(infile)
 
     try:
-        if image.format != 'BMP':
-            image.save(outfile, 'BMP')
-            return outfile
-        else:
-            return outfile
+        image.save(outfile, 'BMP')
+        return outfile
 
     except IOError:
         return ("Cannot process", infile)
@@ -47,7 +46,7 @@ def glitchbmp(infile, outfile, amount, offset):
     outfile = outfile.split('.')[0] + '.bmp'
     lines = filelen(infile)
     print "%s is %i lines long. \n" % (infile, lines)
-    minoffset = lines * 0.3
+    minoffset = lines * 0.05
     maxoffset = lines - 50
 
     if offset < minoffset:
@@ -72,8 +71,8 @@ def glitchbmp(infile, outfile, amount, offset):
 
     print "Substitution will end at %i \n" % end
     
-    payload = ''.join(random.choice(string.hexdigits) for i in range(5))
-    target = [random.choice(string.hexdigits), random.choice(string.hexdigits)]
+    payload = ''.join(random.choice(string.hexdigits) for i in range(4))
+    target = [random.choice(string.hexdigits), random.choice(string.punctuation)]
 
     #TODO implement ability to specify multiple targets when called
     #TODO implement ability to specify target as a regular expression
@@ -99,6 +98,7 @@ def animateglitch(infile, frames):
     while i > 0:
         glitchedimage = glitchbmp(convertedimage, 'glitched-' + baseimage.split('.')[0] + str(i) + '.bmp', glitchamount, offset)
         print "%s glitched to %s \n" % (convertedimage, glitchedimage)
+        print "----------------------------------------"
         i -= 1
 
     animatecommand = "convert -delay 05 -loop 0 -quiet *bmp animated.gif"
