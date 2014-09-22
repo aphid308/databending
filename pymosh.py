@@ -11,10 +11,10 @@ import random
 baseimage = sys.argv[1]
 glitchamount = int(sys.argv[2]) 
 offset = int(sys.argv[3])
+saturation = int(sys.argv[4])
 
 try:
-    frames = int(sys.argv[4])
-
+    frames = int(sys.argv[5])
 except IndexError:
     frames = 16
 
@@ -77,12 +77,17 @@ def glitchbmp(infile, outfile, amount, offset):
     #TODO implement ability to specify multiple targets when called
     #TODO implement ability to specify target as a regular expression
     
+    global saturation
+    saturation = saturation + random.randint(-10,40)
+    IM_command = "mogrify -quiet -modulate 100,%i,100 %s" % (saturation, outfile)
+    
     sedcommand = "sed '%i,%i s/[%s%s]/%s/g' %s > %s" % (offset, end, target[0], target[1], payload, infile, outfile)
     
     print "String: '%s' will be replaced with '%s' \n" % (target, payload)
     print "Command to be run is: %s \n" % sedcommand
 
     subprocess.call(sedcommand, shell=True)
+    subprocess.call(IM_command, shell=True)
 
     return outfile
 
