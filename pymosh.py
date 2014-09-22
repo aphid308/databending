@@ -7,7 +7,6 @@ import random
 #Very early implementation
 #This script will take an image file and glitch amount (as an integer)
 #It will then write a new bmp file that has been databent
-
 baseimage = sys.argv[1]
 glitchamount = int(sys.argv[2]) 
 offset = int(sys.argv[3])
@@ -17,6 +16,7 @@ try:
 
 except IndexError:
     frames = 16
+
 
 def filelen(infile):
     with open(infile) as f:
@@ -40,8 +40,10 @@ def glitchbmp(infile, outfile, amount, offset):
     """
     infile is an image file
     outfile is the name of the bent output file (can include .bmp or be a single word)
-    amount is how many lines you would like to affect of the file (if this exceeds file limits or is likely to break the image, it will be error corrected.)
-    offset is how far into the file to begin bending (if this is too far in to do anything or too early to miss the header it will be error corrected.)
+    amount is how many lines you would like to affect of the file 
+    (if this exceeds file limits or is likely to break the image, it will be error corrected.)
+    offset is how far into the file to begin bending 
+    (if this is too far in to do anything or too early to miss the header it will be error corrected.)
     """
     outfile = outfile.split('.')[0] + '.bmp'
     lines = filelen(infile)
@@ -101,12 +103,13 @@ def animateglitch(infile, frames):
         print "----------------------------------------"
         i -= 1
 
-    animatecommand = "convert -delay 05 -loop 0 -quiet *bmp animated.gif"
+    animatecommand = "convert -delay 05 -loop 0 -quiet *bmp %s.gif" % baseimage.split('.')[0]
 
     subprocess.call(animatecommand, shell=True)
 
+
 animateglitch(baseimage, frames)
 
-
+subprocess.call("rm *bmp")
 
 
