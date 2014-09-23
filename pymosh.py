@@ -10,7 +10,6 @@ import random
 
 baseimage = sys.argv[1] 
 glitchamount = int(raw_input("Glitch Amount: "))
-offset = int(raw_input("Offset: "))
 saturation = int(raw_input("Saturation: "))
 
 try:
@@ -42,7 +41,26 @@ def color_jitter(filename, hue_range):
     IM_command = "mogrify -quiet -modulate 100,%i,%i %s" % (frame_saturation, hue, filename)
     subprocess.call(IM_command, shell=True)
 
-def glitchbmp(infile, outfile, amount, offset):
+def sed_edit(filename, outfile, cutcount):
+    filelength = filelen(filename)
+    print ("File length is %s lines" % filelength)
+    targets = [44, 66, 42, 88, 'xx', 55, 99, 77]
+    endheader = int(filelength * 0.4)
+    print "End of header approximated at line %s" % endheader
+    for i in range(cutcount):
+        target = random.choice(targets)
+        start = random.randint(endheader, int(filelength * 0.8))
+        end = random.randint(start + 1, filelength)
+        payload = ''.join(random.choice(string.hexdigits) for i in range(2))
+        sedcommand = "sed '%i,%i s/%s/%s/g' %s > %s" % (start, end, target, payload, filename, outfile)
+        print "Starting at line %s and ending at line %s all instances of '%s', will be replaced with '%s'" % (start, end, target, payload)
+        subprocess.call(sedcommand, shell=True)
+        filename = outfile
+
+    return outfile
+
+
+def glitchbmp(infile, outfile, amount):
     """
     infile is an image file
     outfile is the name of the bent output file (can include .bmp or be a single word)
@@ -54,31 +72,7 @@ def glitchbmp(infile, outfile, amount, offset):
     outfile = outfile.split('.')[0] + '.bmp'
     lines = filelen(infile)
     print "%s is %i lines long. \n" % (infile, lines)
-    minoffset = lines * 0.05
-    maxoffset = lines - 50
-
-    if offset < minoffset:
-        offset = minoffset
-        
-        print "Offset is too low and may corrupt the header."
-        print "Setting offset to minimum working value: %i" % minoffset
-
-    elif offset > maxoffset:
-        offset = maxoffset
-
-        print "Offset is too high and may not create desired affect."
-        print "Setting offset to maximum working value: %i" % maxoffset
-
-    print "Substitution will start at %i \n" % offset
-    end = offset + amount
-    
-    if end > lines:
-        end = lines
-    else:
-        pass
-
-    print "Substitution will end at %i \n" % end
-    
+    endheader = lines * 0.1
     payload = ''.join(random.choice(string.hexdigits) for i in range(4))
     target = [random.choice(string.hexdigits), random.choice(string.punctuation)]
 
@@ -86,12 +80,12 @@ def glitchbmp(infile, outfile, amount, offset):
     #TODO implement ability to specify target as a regular expression
     
     
-    sedcommand = "sed '%i,%i s/[%s%s]/%s/g' %s > %s" % (offset, end, target[0], target[1], payload, infile, outfile)
-    
-    print "String: '%s' will be replaced with '%s' \n" % (target, payload)
-    print "Command to be run is: %s \n" % sedcommand
+    #sedcommand = "sed '%i,%i s/[%s%s]/%s/g' %s > %s" % (endheader, lines, target[0], target[1], payload, infile, outfile)
+   # 
+    #print "String: '%s' will be replaced with '%s' \n" % (target, payload)
+    #print "Command to be run is: %s \n" % sedcommand
 
-    subprocess.call(sedcommand, shell=True)
+    #sed_edit(infile, outfile, amount)
     color_jitter(outfile, 30)
 
     return outfile
@@ -106,7 +100,7 @@ def animateglitch(infile, frames):
     i = frames
 
     while i > 0:
-        glitchedimage = glitchbmp(convertedimage, 'glitched-' + baseimage.split('.')[0] + str(i) + '.bmp', glitchamount, offset)
+        glitchedimage = glitchbmp(convertedimage, 'glitched-' + baseimage.split('.')[0] + str(i) + '.bmp', glitchamount)
         print "%s glitched to %s \n" % (convertedimage, glitchedimage)
         print "----------------------------------------"
         i -= 1
