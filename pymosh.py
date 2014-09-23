@@ -35,6 +35,12 @@ def convertbmp(infile, outfile):
     except IOError:
         return ("Cannot process", infile)
 
+def color_jitter(filename, hue_range):
+    global saturation
+    frame_saturation = saturation + random.randint(-20,80)
+    hue = random.randint(100-hue_range, 100+hue_range)
+    IM_command = "mogrify -quiet -modulate 100,%i,%i %s" % (frame_saturation, hue, filename)
+    subprocess.call(IM_command, shell=True)
 
 def glitchbmp(infile, outfile, amount, offset):
     """
@@ -79,10 +85,6 @@ def glitchbmp(infile, outfile, amount, offset):
     #TODO implement ability to specify multiple targets when called
     #TODO implement ability to specify target as a regular expression
     
-    global saturation
-    saturation = saturation + random.randint(-10,90)
-    hue = random.randint(85,115)
-    IM_command = "mogrify -quiet -modulate 100,%i,%i %s" % (saturation, hue, outfile)
     
     sedcommand = "sed '%i,%i s/[%s%s]/%s/g' %s > %s" % (offset, end, target[0], target[1], payload, infile, outfile)
     
@@ -90,7 +92,7 @@ def glitchbmp(infile, outfile, amount, offset):
     print "Command to be run is: %s \n" % sedcommand
 
     subprocess.call(sedcommand, shell=True)
-    subprocess.call(IM_command, shell=True)
+    color_jitter(outfile, 30)
 
     return outfile
 
