@@ -34,18 +34,28 @@ def convertbmp(infile, outfile):
     except IOError:
         return ("Cannot process", infile)
 
-def color_jitter(filename, hue_range):
-    frame_saturation = saturation + random.randint(-15,65)
-    hue = random.randint(100-hue_range, 100+hue_range)
-    IM_command = "mogrify -quiet -modulate 100,%i,%i %s" % (frame_saturation, hue, filename)
-    subprocess.call(IM_command, shell=True)
 
-class StreamEditor():
+class ImageWitch():                                 # handles ImageMagick-based glitches
+    
+    def color_jitter(self, filename, hue_range):
+        frame_saturation = saturation + random.randint(-15,65)
+        hue = random.randint(100-hue_range, 100+hue_range)
+        IM_command = "mogrify -quiet -modulate 100,%i,%i %s" % (frame_saturation, hue, filename)
+        subprocess.call(IM_command, shell=True)
+
+    def flashing_lights(self, filename, light_range):
+        light = random.randint(110-light_range/2, 110+light_range)
+        IM_command = "mogrify -quiet -modulate %i,100,100 %s" % (light, filename)
+        subprocess.call(IM_command, shell=True)
+        
+
+
+class StreamEditor():                               # handles sed-based effects
 
     def __init__(self, image):
         self.filelength = filelen(image)
         print ("File length is %s lines" % self.filelength)
-        self.endheader = int(self.filelength * 0.125)
+        self.endheader = int(self.filelength * 0.05)
         print "End of header approximated at line %s" % self.endheader
 
     def rgb_wiggle(self, filename, outfile, cutcount):
@@ -65,6 +75,7 @@ class StreamEditor():
             subprocess.call(sedcommand, shell=True)
             filename = outfile
 
+    # makes viewable BMPs but both PIL and Imagemagick seem to think they're broken
     def del_chunks(self, filename, outfile, chunkcount):
         for i in range(chunkcount):
             start = random.randint(self.endheader+100, int(self.filelength * 0.90))
@@ -76,7 +87,6 @@ class StreamEditor():
             print sedcommand
             subprocess.call(sedcommand, shell=True)
 
-
 def glitchbmp(infile, outfile, amount):
     """
     infile is an image file
@@ -85,10 +95,12 @@ def glitchbmp(infile, outfile, amount):
     outfile = outfile.split('.')[0] + '.bmp'
 
     sed = StreamEditor(infile)
-    #sed.rgb_wiggle(infile, outfile, amount)
-    sed.del_chunks(infile, outfile, amount)
+    sed.rgb_wiggle(infile, outfile, amount)
+    #sed.del_chunks(infile, outfile, amount)
 
-    #color_jitter(outfile, 20)
+    witch = ImageWitch()
+    witch.color_jitter(outfile, 25)
+    witch.flashing_lights(outfile, 50)
 
     return outfile
 
@@ -111,7 +123,7 @@ def animateglitch(infile, frames):
 
     print "Done! Cleaning up...."
     rm_bmps = "rm glitch*.bmp convert*.bmp"
-    #subprocess.call(rm_bmps, shell=True)
+    subprocess.call(rm_bmps, shell=True)
 
 
 animateglitch(baseimage, frames)
