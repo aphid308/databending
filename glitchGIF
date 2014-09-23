@@ -1,0 +1,49 @@
+#!/bin/bash
+#
+# Relies on Imagemagick + sed 
+# (and a being run in folder full of .png images)
+# does not currently check input file type,
+# so don't feed it non-images, please 
+# Imagemagick handles the file format conversion and saturation
+#
+for i in $( ls );
+do
+    echo source file: $i;
+    filename=$(echo $i | sed s/\\.[a-z]*$/.bmp/);
+    convert -quiet -modulate 100,420,100 $i $filename   # up saturation, png->bmp
+    echo converted to: $filename    
+done
+
+mkdir JPGs BMPs
+mv *.bmp BMPs/
+cd BMPs
+
+count=1
+seed=$RANDOM
+echo seed: $seed
+for file in $( ls *.bmp ); 
+do
+    echo Performing substitutions on "$count".bmp ...
+    sed "200,8800 s/44/$RANDOM/g" $file > "$count"a.bmp
+    sed '666,6400 s/66/666/g' "$count"a.bmp > "$count"b.bmp
+    sed '420,4200 s/42/420blazeit/g' "$count"b.bmp > "$count"c.bmp
+    sed "3600,$ s/88/$RANDOM/g" "$count"c.bmp > "$count"d.bmp
+    sed '225,$ s/xx//g' "$count"d.bmp > "$count"e.bmp
+    sed "220,$ s/55/"$seed"/g" "$count"e.bmp > "$count"f.bmp
+    sed "150,$ s/99/"$seed"/g" "$count"f.bmp > "$count"g.bmp
+    sed '125,$ s/77//g' "$count"g.bmp > "$count"h.bmp
+    sed '240,$ s/99//g' "$count"h.bmp > "$count".bmp
+    #convert -quiet -modulate 100,142,100 "$count".bmp ../JPGs/"$count".jpg # bmp->jpg
+    rm $file
+    count=$((count + 1))
+done
+
+cd ..
+#rm -rf BMPs
+
+echo
+echo converting JPGs to GIF... \(this might take a while\) 
+#convert -delay 8 JPGs/*.jpg final.gif     # make a GIF!
+convert -delay 2 BMPs/*.bmp final.gif     # make a GIF!
+echo 
+echo Finished!
