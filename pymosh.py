@@ -40,8 +40,10 @@ def glitchbmp(infile, outfile, amount, offset):
     """
     infile is an image file
     outfile is the name of the bent output file (can include .bmp or be a single word)
-    amount is how many lines you would like to affect of the file (if this exceeds file limits or is likely to break the image, it will be error corrected.)
-    offset is how far into the file to begin bending (if this is too far in to do anything or too early to miss the header it will be error corrected.)
+    amount is how many lines you would like to affect of the file (if this exceeds 
+    file limits or is likely to break the image, it will be error corrected.)
+    offset is how far into the file to begin bending (if this is too far in to do 
+    anything or too early to miss the header it will be error corrected.)
     """
     outfile = outfile.split('.')[0] + '.bmp'
     lines = filelen(infile)
