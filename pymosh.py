@@ -8,13 +8,13 @@ import random
 #This script will take an image file and glitch amount (as an integer)
 #It will then write a new bmp file that has been databent
 
-baseimage = sys.argv[1]
-glitchamount = int(sys.argv[2]) 
-offset = int(sys.argv[3])
-saturation = int(sys.argv[4])
+baseimage = raw_input("Base Image: ")
+glitchamount = int(raw_input("Glitch Amount: "))
+offset = int(raw_input("Offset: "))
+saturation = int(raw_input("Saturation: "))
 
 try:
-    frames = int(sys.argv[5])
+    frames = int(raw_input("Frames: "))
 except IndexError:
     frames = 16
 
