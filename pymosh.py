@@ -78,8 +78,9 @@ def glitchbmp(infile, outfile, amount, offset):
     #TODO implement ability to specify target as a regular expression
     
     global saturation
-    saturation = saturation + random.randint(-10,40)
-    IM_command = "mogrify -quiet -modulate 100,%i,100 %s" % (saturation, outfile)
+    saturation = saturation + random.randint(-10,90)
+    hue = random.randint(85,115)
+    IM_command = "mogrify -quiet -modulate 100,%i,%i %s" % (saturation, hue, outfile)
     
     sedcommand = "sed '%i,%i s/[%s%s]/%s/g' %s > %s" % (offset, end, target[0], target[1], payload, infile, outfile)
     
