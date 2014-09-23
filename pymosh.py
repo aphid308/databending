@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 from PIL import Image
 import subprocess
 import os, sys
@@ -35,30 +36,31 @@ def convertbmp(infile, outfile):
         return ("Cannot process", infile)
 
 def color_jitter(filename, hue_range):
-    global saturation
     frame_saturation = saturation + random.randint(-20,80)
     hue = random.randint(100-hue_range, 100+hue_range)
     IM_command = "mogrify -quiet -modulate 100,%i,%i %s" % (frame_saturation, hue, filename)
     subprocess.call(IM_command, shell=True)
 
-#def sed_edit(filename, outfile, cutcount):
-#    filelength = filelen(filename)
-#    print ("File length is %s lines" % filelength)
-#    targets = [44, 66, 42, 88, 'xx', 55, 99, 77]
-#    endheader = int(filelength * 0.4)
-#    print "End of header approximated at line %s" % endheader
-#    for i in range(cutcount):
-#        target = random.choice(targets)
-#        start = random.randint(endheader, int(filelength * 0.8))
-#        end = random.randint(start + 1, filelength)
-#        payload = ''.join(random.choice(string.hexdigits) for i in range(2))
-#        sedcommand = "sed '%i,%i s/%s/%s/g' %s > %s" % (start, end, target, payload, filename, outfile)
-#        print "Starting at line %s and ending at line %s all instances of '%s', will be replaced with '%s'" % (start, end, target, payload)
-#        subprocess.call(sedcommand, shell=True)
-#        filename = outfile
-
-#    return outfile
-
+def sed_edit(filename, outfile, cutcount):
+    filelength = filelen(filename)
+    print ("File length is %s lines" % filelength)
+    targets = [44, 66, 42, 88, 'xx', 55, 99, 77, 'dd', 'ef', 'aa']
+    endheader = int(filelength * 0.05)
+    print "End of header approximated at line %s" % endheader
+    for i in range(cutcount):
+        target = random.choice(targets)
+        start = random.randint(endheader, int(filelength * 0.8))
+        end = random.randint(start + 1, filelength)
+        payload = ''.join(random.choice(string.hexdigits) for i in range(random.randint(2,10)))
+        
+        if i == 0:
+            sedcommand = "sed '%i,%i s/%s/%s/g' %s > %s" % (start, end, target, payload, filename, outfile)
+        else:
+            sedcommand = "sed -i '%i,%i s/%s/%s/g' %s" % (start, end, target, payload, filename)
+        
+        print "Starting at line %s and ending at line %s all instances of '%s', will be replaced with '%s'" % (start, end, target, payload)
+        subprocess.call(sedcommand, shell=True)
+        filename = outfile
 
 def glitchbmp(infile, outfile, amount):
     """
@@ -72,22 +74,9 @@ def glitchbmp(infile, outfile, amount):
     outfile = outfile.split('.')[0] + '.bmp'
     lines = filelen(infile)
     print "%s is %i lines long. \n" % (infile, lines)
-    endheader = lines * 0.1
-    payload = ''.join(random.choice(string.hexdigits) for i in range(4))
-    target = [random.choice(string.hexdigits), random.choice(string.punctuation)]
 
-    #TODO implement ability to specify multiple targets when called
-    #TODO implement ability to specify target as a regular expression
-    
-    
-    sedcommand = "sed '%i,%i s/[%s%s]/%s/g' %s > %s" % (endheader, lines, target[0], target[1], payload, infile, outfile)
-   
-    print "String: '%s' will be replaced with '%s' \n" % (target, payload)
-    print "Command to be run is: %s \n" % sedcommand
-
-    #sed_edit(infile, outfile, amount)
-    subprocess.call(sedcommand, shell=True)
-    color_jitter(outfile, 30)
+    sed_edit(infile, outfile, amount)
+    color_jitter(outfile, 20)
 
     return outfile
 
@@ -95,11 +84,9 @@ def glitchbmp(infile, outfile, amount):
 def animateglitch(infile, frames):
 
     convertedimage = convertbmp(baseimage, 'converted-%s' % baseimage)
-
     print "%s converted to %s \n" % (baseimage, convertedimage)
-
+    
     i = frames
-
     while i > 0:
         glitchedimage = glitchbmp(convertedimage, 'glitched-' + baseimage.split('.')[0] + str(i) + '.bmp', glitchamount)
         print "%s glitched to %s \n" % (convertedimage, glitchedimage)
@@ -107,8 +94,8 @@ def animateglitch(infile, frames):
         i -= 1
 
     animatecommand = "convert -delay 05 -loop 0 -quiet *bmp animated.gif"
-
     subprocess.call(animatecommand, shell=True)
+
 
 animateglitch(baseimage, frames)
 
