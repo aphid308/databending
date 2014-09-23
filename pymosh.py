@@ -41,23 +41,23 @@ def color_jitter(filename, hue_range):
     IM_command = "mogrify -quiet -modulate 100,%i,%i %s" % (frame_saturation, hue, filename)
     subprocess.call(IM_command, shell=True)
 
-def sed_edit(filename, outfile, cutcount):
-    filelength = filelen(filename)
-    print ("File length is %s lines" % filelength)
-    targets = [44, 66, 42, 88, 'xx', 55, 99, 77]
-    endheader = int(filelength * 0.4)
-    print "End of header approximated at line %s" % endheader
-    for i in range(cutcount):
-        target = random.choice(targets)
-        start = random.randint(endheader, int(filelength * 0.8))
-        end = random.randint(start + 1, filelength)
-        payload = ''.join(random.choice(string.hexdigits) for i in range(2))
-        sedcommand = "sed '%i,%i s/%s/%s/g' %s > %s" % (start, end, target, payload, filename, outfile)
-        print "Starting at line %s and ending at line %s all instances of '%s', will be replaced with '%s'" % (start, end, target, payload)
-        subprocess.call(sedcommand, shell=True)
-        filename = outfile
+#def sed_edit(filename, outfile, cutcount):
+#    filelength = filelen(filename)
+#    print ("File length is %s lines" % filelength)
+#    targets = [44, 66, 42, 88, 'xx', 55, 99, 77]
+#    endheader = int(filelength * 0.4)
+#    print "End of header approximated at line %s" % endheader
+#    for i in range(cutcount):
+#        target = random.choice(targets)
+#        start = random.randint(endheader, int(filelength * 0.8))
+#        end = random.randint(start + 1, filelength)
+#        payload = ''.join(random.choice(string.hexdigits) for i in range(2))
+#        sedcommand = "sed '%i,%i s/%s/%s/g' %s > %s" % (start, end, target, payload, filename, outfile)
+#        print "Starting at line %s and ending at line %s all instances of '%s', will be replaced with '%s'" % (start, end, target, payload)
+#        subprocess.call(sedcommand, shell=True)
+#        filename = outfile
 
-    return outfile
+#    return outfile
 
 
 def glitchbmp(infile, outfile, amount):
@@ -80,12 +80,13 @@ def glitchbmp(infile, outfile, amount):
     #TODO implement ability to specify target as a regular expression
     
     
-    #sedcommand = "sed '%i,%i s/[%s%s]/%s/g' %s > %s" % (endheader, lines, target[0], target[1], payload, infile, outfile)
-   # 
-    #print "String: '%s' will be replaced with '%s' \n" % (target, payload)
-    #print "Command to be run is: %s \n" % sedcommand
+    sedcommand = "sed '%i,%i s/[%s%s]/%s/g' %s > %s" % (endheader, lines, target[0], target[1], payload, infile, outfile)
+   
+    print "String: '%s' will be replaced with '%s' \n" % (target, payload)
+    print "Command to be run is: %s \n" % sedcommand
 
     #sed_edit(infile, outfile, amount)
+    subprocess.call(sedcommand, shell=True)
     color_jitter(outfile, 30)
 
     return outfile
