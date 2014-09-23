@@ -8,7 +8,7 @@ import random
 #This script will take an image file and glitch amount (as an integer)
 #It will then write a new bmp file that has been databent
 
-baseimage = raw_input("Base Image: ")
+baseimage = sys.argv[1] 
 glitchamount = int(raw_input("Glitch Amount: "))
 offset = int(raw_input("Offset: "))
 saturation = int(raw_input("Saturation: "))
