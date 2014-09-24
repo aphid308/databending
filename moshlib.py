@@ -4,6 +4,7 @@ import subprocess
 import os, sys
 import string
 import random
+import ConfigParser
 
 #Very early implementation
 #This script will take an image file and glitch amount (as an integer)
@@ -18,6 +19,22 @@ try:
     frames = int(raw_input("Frames: "))
 except IndexError:
     frames = 16
+
+Config = ConfigParser.ConfigParser()
+Config.read('conf.ini')
+
+def configmap(section):
+    dict1 = {}
+    options = Config.options(section)
+    for option in options:
+        try:
+            dict1[option] = Config.get(section, option)
+            if dict1[option] == -1:
+                DebugPrint("skip: %s" % option)
+        except:
+            print("exception on %s!" % option)
+            dict1[option] = None
+    return dict1
 
 def filelen(infile):
     with open(infile) as f:
@@ -55,7 +72,10 @@ class StreamEditor():                               # handles sed-based effects
     def __init__(self, image):
         self.filelength = filelen(image)
         print ("File length is %s lines" % self.filelength)
-        self.endheader = int(self.filelength * 0.05)
+        #basic implementation of the config file below
+        #we can discuss which params we want to offload to the ini file later
+        headerdifferential = configmap('Settings')['headerdifferential']
+        self.endheader = int(self.filelength * int(headerdifferential))
         print "End of header approximated at line %s" % self.endheader
 
     def rgb_wiggle(self, filename, outfile, cutcount):
