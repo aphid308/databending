@@ -75,7 +75,7 @@ class StreamEditor():                               # handles sed-based effects
         #basic implementation of the config file below
         #we can discuss which params we want to offload to the ini file later
         headerdifferential = configmap('Settings')['headerdifferential']
-        self.endheader = int(self.filelength * int(headerdifferential))
+        self.endheader = int(self.filelength * float(headerdifferential))
         print "End of header approximated at line %s" % self.endheader
 
     def rgb_wiggle(self, filename, outfile, cutcount):
