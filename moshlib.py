@@ -82,7 +82,7 @@ class StreamEditor():                               # handles sed-based effects
         targets = [44, 66, 42, 88, 'xx', 55, 99, 77, 'dd', 'ef', 'aa']
         for i in range(cutcount):
             target = random.choice(targets)
-            start = random.randint(self.endheader, int(self.filelength * float(self.headerdifferential))
+            start = random.randint(self.endheader, int(self.filelength * float(self.headerdifferential)))
             end = random.randint(start + 1, self.filelength)
             payload = ''.join(random.choice(string.hexdigits) for i in range(random.randint(1,8)))
             
