@@ -5,6 +5,7 @@ import os, sys
 import string
 import random
 import ConfigParser
+from random import randint
 
 #Very early implementation
 #This script will take an image file and glitch amount (as an integer)
@@ -12,8 +13,9 @@ import ConfigParser
 
 baseimage = sys.argv[1] 
 glitchamount = int(raw_input("Glitch Amount: "))
-saturation = int(raw_input("Saturation: "))
+saturation = int(raw_input("Saturation (100 is unchanged): "))
 anim_delay = int(raw_input("Animation Delay: "))
+rotation_chance = int(raw_input("Rotation Chance (0-100): "))
 
 try:
     frames = int(raw_input("Frames: "))
@@ -53,21 +55,42 @@ def convertbmp(infile, outfile):
 
 
 class ImageWitch():                                 # handles ImageMagick-based glitches
-    
+   
+    # randomize saturation and hue with a range 
     def color_jitter(self, filename, hue_range):
-        frame_saturation = saturation + random.randint(-15,65)
-        hue = random.randint(100-hue_range, 100+hue_range)
+        frame_saturation = saturation + randint(-15,65)
+        hue = randint(100-hue_range, 100+hue_range)
         IM_command = "mogrify -quiet -modulate 100,%i,%i %s" % (frame_saturation, hue, filename)
         subprocess.call(IM_command, shell=True)
 
+    # randomize brightness to create flashing effect, accents lines nicely
     def flashing_lights(self, filename, light_range):
-        light = random.randint(110-light_range/2, 110+light_range)
+        light = randint(110-light_range/2, 110+light_range)
         IM_command = "mogrify -quiet -modulate %i,100,100 %s" % (light, filename)
         subprocess.call(IM_command, shell=True)
-        
+    
+    # should be used BEFORE text-based glitches if you want non-horizontal glitches
+    def random_rotate(self, filename, chance):
+        if chance > 100: 
+            chance = 100
+        elif chance < 0:
+            return
+        if randint(1,100) <= chance:
+            IM_command = "mogrify -quiet -transpose %s" % filename
+            subprocess.call(IM_command, shell=True)
+            return True
+        else:
+            return False
+
+    # realign images rotated with the above function        
+    def unrotate(self, filename):
+        IM_command = "mogrify -quiet -rotate 270 %s" % filename
+        subprocess.call(IM_command, shell=True)
+            
+            
 
 
-class StreamEditor():                               # handles sed-based effects
+class SedSorceror():                               # handles sed-based effects
 
     def __init__(self, image):
         self.filelength = filelen(image)
@@ -82,9 +105,9 @@ class StreamEditor():                               # handles sed-based effects
         targets = [44, 66, 42, 88, 'xx', 55, 99, 77, 'dd', 'ef', 'aa']
         for i in range(cutcount):
             target = random.choice(targets)
-            start = random.randint(self.endheader, int(self.filelength * float(self.headerdifferential)))
-            end = random.randint(start + 1, self.filelength)
-            payload = ''.join(random.choice(string.hexdigits) for i in range(random.randint(1,8)))
+            start = randint(self.endheader, int(self.filelength * float(self.headerdifferential)))
+            end = randint(start + 1, self.filelength)
+            payload = ''.join(random.choice(string.hexdigits) for i in range(randint(1,8)))
             
             if i == 0:
                 sedcommand = "sed '%i,%i s/%s/%s/g' %s > %s" % (start, end, target, payload, filename, outfile)
@@ -98,8 +121,8 @@ class StreamEditor():                               # handles sed-based effects
     # makes viewable BMPs but both PIL and Imagemagick seem to think they're broken
     def del_chunks(self, filename, outfile, chunkcount):
         for i in range(chunkcount):
-            start = random.randint(self.endheader+100, int(self.filelength * 0.90))
-            end = random.randint(start + 1, start+40)
+            start = randint(self.endheader+100, int(self.filelength * 0.90))
+            end = randint(start + 1, start+40)
             if i == 0:
                 sedcommand = "sed -e '%i,%id' %s > %s" % (start, end, filename, outfile)
             else:
@@ -114,11 +137,16 @@ def glitchbmp(infile, outfile, amount):
     """
     outfile = outfile.split('.')[0] + '.bmp'
 
-    sed = StreamEditor(infile)
-    sed.rgb_wiggle(infile, outfile, amount)
-    #sed.del_chunks(infile, outfile, amount)
-
+    sed = SedSorceror(infile)
     witch = ImageWitch()
+    
+    rotated = witch.random_rotate(infile, rotation_chance)
+    sed.rgb_wiggle(infile, outfile, amount)
+    if rotated:
+        print "File was rotated, trying to unrotate %s ..." % outfile
+        witch.unrotate(outfile)
+        witch.unrotate(infile)
+
     witch.color_jitter(outfile, 25)
     witch.flashing_lights(outfile, 50)
 
