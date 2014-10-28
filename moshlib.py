@@ -1,26 +1,12 @@
 #!/usr/bin/env python
 from PIL import Image
-import subprocess
+import argparse
 import os, sys
 import string
 import random
 import ConfigParser
+from subprocess import call
 from random import randint
-
-#Very early implementation
-#This script will take an image file and glitch amount (as an integer)
-#It will then write a new bmp file that has been databent
-
-baseimage = sys.argv[1] 
-glitchamount = int(raw_input("Glitch Amount: "))
-saturation = int(raw_input("Saturation (100 is unchanged): "))
-anim_delay = int(raw_input("Animation Delay: "))
-rotation_chance = int(raw_input("Rotation Chance (0-100): "))
-
-try:
-    frames = int(raw_input("Frames: "))
-except IndexError:
-    frames = 16
 
 Config = ConfigParser.ConfigParser()
 Config.read('conf.ini')
@@ -44,6 +30,29 @@ def filelen(infile):
             pass
         return i + 1
 
+def handle_options():
+    defaults = configmap('Defaults')
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("input_files")
+    parser.add_argument("-f", "--frames", default=defaults['animation_frames'],
+        type=int, help="Number of frames for the animation")
+    parser.add_argument("-d", "--delay", default=defaults['animation_delay'],
+        type=int, help="animation delay in 100ths of a second")
+    parser.add_argument("-a", "--amount", default=defaults['glitch_amount'],
+        type=int, help="Text glitches per frame")
+    parser.add_argument("-s", "--saturation", default=defaults['saturation'],
+        type=int, help="Saturation change (100 is unchanged)")
+    parser.add_argument("-c", "--colors", default=defaults['colors'],
+        type=int, help="Number of colors in the color pallete of the final GIF")
+    parser.add_argument("-r", "--rotate", default=defaults['rotation_chance'], 
+        type=int, help="Chance of image rotation")
+    parser.add_argument("-i", "--interactive", default=False, 
+        type=int, help="Chance of image rotation")
+
+    return parser.parse_args()
+
+
 def convertbmp(infile, outfile):
     outfile = outfile.split('.')[0] + '.bmp'
     image = Image.open(infile)
@@ -53,31 +62,36 @@ def convertbmp(infile, outfile):
     except IOError:
         return ("Cannot process", infile)
 
+class Gifscythe():                                 # methods using Gifsicle
+    
+    def finalize(self, input_gif):
+        print 'Optimizing and dithering final GIF...'
+        call('gifsicle -O3 --colors %i --dither --batch %s' % (opts.colors, input_gif), shell=True)
 
-class ImageWitch():                                 # handles ImageMagick-based glitches
+class ImageMage():                                 # handles ImageMagick-based glitches
    
     # randomize saturation and hue with a range 
     def color_jitter(self, filename, hue_range):
-        frame_saturation = saturation + randint(-15,65)
+        frame_saturation = opts.saturation + randint(-15,35)
         hue = randint(100-hue_range, 100+hue_range)
         IM_command = "mogrify -quiet -modulate 100,%i,%i %s" % (frame_saturation, hue, filename)
-        subprocess.call(IM_command, shell=True)
+        call(IM_command, shell=True)
 
     # randomize brightness to create flashing effect, accents lines nicely
     def flashing_lights(self, filename, light_range):
         light = randint(110-light_range/2, 110+light_range)
         IM_command = "mogrify -quiet -modulate %i,100,100 %s" % (light, filename)
-        subprocess.call(IM_command, shell=True)
+        call(IM_command, shell=True)
     
     # should be used BEFORE text-based glitches if you want non-horizontal glitches
     def random_rotate(self, filename, chance):
         if chance > 100: 
             chance = 100
-        elif chance < 0:
+        elif chance <= 0:
             return
         if randint(1,100) <= chance:
             IM_command = "mogrify -quiet -transpose %s" % filename
-            subprocess.call(IM_command, shell=True)
+            call(IM_command, shell=True)
             return True
         else:
             return False
@@ -85,10 +99,9 @@ class ImageWitch():                                 # handles ImageMagick-based 
     # realign images rotated with the above function        
     def unrotate(self, filename):
         IM_command = "mogrify -quiet -rotate 270 %s" % filename
-        subprocess.call(IM_command, shell=True)
+        call(IM_command, shell=True)
             
             
-
 
 class SedSorceror():                               # handles sed-based effects
 
@@ -98,24 +111,31 @@ class SedSorceror():                               # handles sed-based effects
         #basic implementation of the config file below
         #we can discuss which params we want to offload to the ini file later
         self.headerdifferential = configmap('Settings')['headerdifferential']
-        self.endheader = int(self.filelength * float(self.headerdifferential))
+        self.endheader = int(self.filelength * float(self.headerdifferential)) + 2
+        if self.endheader > 200:
+            self.endheader =200
         print "End of header approximated at line %s" % self.endheader
 
     def rgb_wiggle(self, filename, outfile, cutcount):
-        targets = [44, 66, 42, 88, 'xx', 55, 99, 77, 'dd', 'ef', 'aa']
+        targets = [''.join(random.choice(string.hexdigits) for n in range(0,2)) for n in range (0,30)]
         for i in range(cutcount):
             target = random.choice(targets)
-            start = randint(self.endheader, int(self.filelength * float(self.headerdifferential)))
-            end = randint(start + 1, self.filelength)
-            payload = ''.join(random.choice(string.hexdigits) for i in range(randint(1,8)))
+            start = randint(self.endheader, int(self.filelength * 0.90))
+
+            if randint(0,100) > 66:
+                end = "$" # end of file
+            else:
+                end = str(randint(start + 1, self.filelength))
+
+            payload = ''.join(random.choice(string.hexdigits) for i in range(randint(0,12)))
             
             if i == 0:
-                sedcommand = "sed '%i,%i s/%s/%s/g' %s > %s" % (start, end, target, payload, filename, outfile)
+                sedcommand = "sed '%i,%s s/%s/%s/g' %s > %s" % (start, end, target, payload, filename, outfile)
             else:
-                sedcommand = "sed -i '%i,%i s/%s/%s/g' %s" % (start, end, target, payload, filename)
+                sedcommand = "sed -i '%i,%s s/%s/%s/g' %s" % (start, end, target, payload, filename)
             
             print "On lines %s through line %s, '%s' will be replaced with '%s'" % (start, end, target, payload)
-            subprocess.call(sedcommand, shell=True)
+            call(sedcommand, shell=True)
             filename = outfile
 
     # makes viewable BMPs but both PIL and Imagemagick seem to think they're broken
@@ -128,7 +148,7 @@ class SedSorceror():                               # handles sed-based effects
             else:
                 sedcommand = "sed -i -e '%i,%id' %s" % (start, end, outfile)
             print sedcommand
-            subprocess.call(sedcommand, shell=True)
+            call(sedcommand, shell=True)
 
 def glitchbmp(infile, outfile, amount):
     """
@@ -138,44 +158,44 @@ def glitchbmp(infile, outfile, amount):
     outfile = outfile.split('.')[0] + '.bmp'
 
     sed = SedSorceror(infile)
-    witch = ImageWitch()
+    mage = ImageMage()
     
-    rotated = witch.random_rotate(infile, rotation_chance)
+    rotated = mage.random_rotate(infile, opts.rotate)
     sed.rgb_wiggle(infile, outfile, amount)
     if rotated:
         print "File was rotated, trying to unrotate %s ..." % outfile
-        witch.unrotate(outfile)
-        witch.unrotate(infile)
+        mage.unrotate(outfile)
+        mage.unrotate(infile)
 
-    witch.color_jitter(outfile, 25)
-    witch.flashing_lights(outfile, 50)
+    mage.color_jitter(outfile, randint(10,30))
+    mage.flashing_lights(outfile, randint(10,40))
 
     return outfile
 
 
-def animateglitch(infile, frames):
+def animateglitch(infile, frames, anim_delay, glitch_amount):
 
-    convertedimage = convertbmp(baseimage, 'converted-%s' % baseimage)
-    print "%s converted to %s \n" % (baseimage, convertedimage)
+    convertedimage = convertbmp(infile, 'converted-%s' % infile)
+    print "%s converted to %s \n" % (infile, convertedimage)
     
-    i = frames
-    while i > 0:
-        glitchedimage = glitchbmp(convertedimage, 'glitched-' + baseimage.split('.')[0] + str(i) + '.bmp', glitchamount)
+    i = 1
+    while i <= frames:
+        glitchedimage = glitchbmp(convertedimage, 'glitched-' + infile.split('.')[0] + str(i) + '.bmp', glitch_amount)
         print "%s glitched to %s \n" % (convertedimage, glitchedimage)
         print "----------------------------------------"
-        i -= 1
+        i += 1
 
+    gif = Gifscythe()
     print "\nAnimating GIF... (this may take a while)"
-    animatecommand = "convert -delay %i -loop 0 -quiet *bmp %s-animated.gif" % (anim_delay, baseimage.split('.')[0])
-    subprocess.call(animatecommand, shell=True)
-
+    filename_base = infile.split('.')[0]
+    animatecommand = "convert -delay %i -loop 0 -quiet glitched*bmp %s-animated.gif" % (anim_delay, filename_base)
+    call(animatecommand, shell=True)
+    gif.finalize("%s-animated.gif" % filename_base)
+    
     print "Done! Cleaning up...."
-    rm_bmps = "rm glitch*.bmp convert*.bmp"
-    subprocess.call(rm_bmps, shell=True)
+    call("rm glitch*.bmp convert*.bmp", shell=True)
 
 
-animateglitch(baseimage, frames)
-
-
-
+opts = handle_options()
+animateglitch(opts.input_files, opts.frames, opts.delay, opts.amount)
 
